@@ -48,12 +48,8 @@ Then, format the result into ActiGraph GT3X-style CSV files, using VM = count, a
 # Working dataset
 pam_perminuteWorking <- filter(pam_perminute, RIDAGEYR>=18) %>% dplyr::select(-RIDAGEYR)
 allSEQN <- unique(pam_perminuteWorking$SEQN)
- 
-# Working dataset
-pam_perminuteWorking <- filter(pam_perminute, RIDAGEYR>=18) %>% dplyr::select(-RIDAGEYR)
-allSEQN <- unique(pam_perminuteWorking$SEQN)
 
-# 1) build a map from PAXDAY (1=Sunday…7=Saturday) → actual Date in Jan 2000
+# Map PAXDAY (1=Sunday…7=Saturday) to a date , silimar to 2011-2014 format (1st week of 2000-01-01)
 first_week <- as.Date("2000-01-01") + 0:6
 # POSIXlt$wday: 0=Sunday…6=Saturday, so add 1 to align with PAXDAY
 day_codes  <- as.POSIXlt(first_week)$wday + 1
@@ -75,14 +71,14 @@ for (seq in allSEQN) {
       ),
       TimeStamp = format(TimeStamp, "%Y-%m-%dT%H:%M:%SZ"),
       vm    = PAXINTEN,
-      axis1 = vm, axis2 = 0, axis3 = 0
+      axis1 = vm, axis2 = 0, axis3 = 0 # Those are dummy values , GGIR won't use XYZ axis acc to do any of the calculation
     ) %>%
-    select(TimeStamp, axis1, axis2, axis3, vm)
+    select(TimeStamp, axis1, axis2, axis3, vm) # VM is derived count data
   
-  # rebuild header using this subject’s first row
+  # rebuild acc header using this participant’s first row
   hdr <- c(
     "------------ Data Table File Created By Actigraph Link ActiLife v6.11.9 date format dd/MM/yyyy Filter Normal -----------,,,,,",
-    "Serial Number: TAS1D48140206,,,,,",
+    "Serial Number: TAS1D48140206,,,,,", # Just a random SN
     paste0(
       "Start Time ",
       format(
@@ -134,8 +130,8 @@ The core idea is to use GGIR to process the 2003–2006 accelerometer data witho
 
 As a result:
 1. Most established sleep detection and step count algorithms (e.g., Verisense step count algorithm) do not work on this data.
-2. You won’t get reliable circadian rhythm estimations, because the wear time is generally insufficient.
-3. In ~10% of participants who did not follow wear-time guidelines, it may be possible to estimate IV/IS and other circadian rhythm parameters.
+2. You won’t get reliable circadian rhythm estimates because the wear time is generally insufficient. Yes I know there are some papers report RA, M10, and L5. However, L5 is most likely to coincide with the non-wear period (during sleep), resulting in extremely high RA values, often near 1 in 90% of cases which doesn’t make sense at all.
+3. In ~10% of participants who did not follow wear-time guidelines, it may be possible to estimate RA and other circadian rhythm parameters.
 
 I wrote code to match the NCI algorithm as closely as possible. Key features:
 1. Calibration and imputation are turned off.
@@ -164,10 +160,10 @@ GGIR(
   nonwear_range_threshold  = 100, 
   HASPT.ignore.invalid     = NA,
   ignorenonwear            = FALSE,
-  threshold.lig            = 100,
-  threshold.mod            = 1400,
-  threshold.vig            = 3758,
-  includedaycrit           = 10,
+  threshold.lig            = 100, # Below 100 cpm is sedentary
+  threshold.mod            = 2020, # Change this to age specific cut off
+  threshold.vig            = 5999, # Change this to age specific cut off
+  includedaycrit           = 10, # NCI consider >=10 hr per day is valid
   includenightcrit         = 10)
 ```
 I compared MVPA (total duration, no need to consider bouts at the 60-second epoch level, as the 60s resolution already smooths out random acceleration) and sedentary behavior time against the NCI SAS algorithm. The correlations were 97% and 90%, respectively. I would consider it safe to use.

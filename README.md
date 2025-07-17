@@ -124,23 +124,33 @@ for (seq in allSEQN) {
   )
 }
 ```
-Step 4: Process the CSV Files
+### Step 4: Process the CSV Files
 
-The core idea is to use GGIR to process the 2003–2006 accelerometer data without calibration and imputation. The 2003–2006 data were collected using the ActiGraph 7164, a single-axis accelerometer with 60-second epoch count data. Participants were instructed to remove the device while showering, swimming, or sleeping.
+The core idea is to use GGIR to process the 2003–2006 accelerometer data without calibration and imputation. The 2003–2006 data were collected using the ActiGraph 7164, a single-axis accelerometer with 60-second epoch count data. Participants were instructed to remove the device while showering, swimming, or sleeping ([see protocol](https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2003/DataFiles/PAXRAW_C.htm)). 
 
 As a result:
 1. Most established sleep detection and step count algorithms (e.g., Verisense step count algorithm) do not work on this data.
 2. You won’t get reliable circadian rhythm estimates because the wear time is generally insufficient. Yes I know there are some papers report RA, M10, and L5. However, L5 is most likely to coincide with the non-wear period (during sleep), resulting in extremely high RA values, often near 1 in 90% of cases which doesn’t make sense at all.
-3. In ~10% of participants who did not follow wear-time guidelines, it may be possible to estimate RA and other circadian rhythm parameters.
+3. In ~10% of participants who did not follow protocol, it may be possible to estimate RA and other circadian rhythm parameters.
 
 I wrote code to match the NCI algorithm as closely as possible. Key features:
 1. Calibration and imputation are turned off.
-2. Epoch sizes are set to 60s (counts), 900s (15-minute non-wear detection), and 3600s (hourly non-wear summary).
-3. Uses GGIR’s non-wear detection (NotWorn algorithm) to identify sleep.
-4. A 10-hour minimum wear time defines a valid day (same as NCI).
-5. Uses a 100-count non-wear threshold (though I’m not sure it works well).
-6. Applies NCI-defined thresholds for sedentary, light, moderate, and vigorous PA.
-7. Uses already-derived ActiGraph 7164 counts (VM) as the acc metric.
+2. Windowsizes are set to c(60, 900, 3600). This is my custom setting because I truly believe the GGIR default. Here's an explanation:
+```
+window1 = 60: Matches the native 60-second epoch of the ActiGraph 7164
+window2 = 900: 15-minute windows for non-wear detection (I think this is reasonable, although it DOES NOT match the original NCI algorithm)
+window3 = 3600: 1-hour assessment windows with overlapping detection
+```
+According to the NCI algorithm ([create.pam_perday.sas](https://epi.grants.cancer.gov/nhanes-pam/create.pam_perday.sas), line 183), window2 should be set to 3600 (i.e., 60 minutes). You can try this setting if you want to follow the original method.
+
+4. Uses GGIR’s non-wear detection (NotWorn algorithm) to identify sleep. I tried L5+/-12 but it gave me some pretty wild results.
+5. A 10-hour minimum wear time defines a valid day (same as NCI).
+6. Uses a 100-count non-wear threshold (though I’m not sure it works well).
+7. Applies NCI-defined thresholds for sedentary, light, moderate, and vigorous PA.
+8. Uses already-derived ActiGraph 7164 counts (VM) as the acc metric.
+9. Per GGIR instruction, HDCZA should be used when accelerometer is worn for more than 75% of the night (aka , those 10% people does not follow the protocol).
+
+My GGIR parameter:
 
 ```bash
 GGIR(
@@ -154,8 +164,8 @@ GGIR(
   do.neishabouricounts     = FALSE,
   acc.metric               = "NeishabouriCount_vm",
   studyname                = "NHANES03040506",
-  HASPT.algo               = "NotWorn",
-  HASIB.algo               = "NotWorn",
+  HASPT.algo               = c("NotWorn", "HDCZA"),
+  HASIB.algo               = "vanHees2015",
   do.imp                   = FALSE,
   nonwear_range_threshold  = 100, 
   HASPT.ignore.invalid     = NA,
@@ -169,5 +179,3 @@ GGIR(
 I compared MVPA (total duration, no need to consider bouts at the 60-second epoch level, as the 60s resolution already smooths out random acceleration) and sedentary behavior time against the NCI SAS algorithm. The correlations were 97% and 90%, respectively. I would consider it safe to use.
 
 # If you have any questions or would like access to the processed data (it’s way too large to upload to GitHub), feel free to contact me on LinkedIn!
-
-

@@ -148,7 +148,7 @@ According to the NCI algorithm ([create.pam_perday.sas](https://epi.grants.cance
 6. Uses a 100-count non-wear threshold (though I’m not sure it works well).
 7. Applies NCI-defined thresholds for sedentary, light, moderate, and vigorous PA.
 8. Uses already-derived ActiGraph 7164 counts (VM) as the acc metric.
-9. Per GGIR instruction, HDCZA should be used when accelerometer is worn for more than 75% of the night (aka , those 10% people does not follow the protocol).
+9. You have to use NotWorn for both HASPT.algo and HASIB.algo.
 
 My GGIR parameter:
 
@@ -164,8 +164,8 @@ GGIR(
   do.neishabouricounts     = FALSE,
   acc.metric               = "NeishabouriCount_vm",
   studyname                = "NHANES03040506",
-  HASPT.algo               = c("NotWorn", "HDCZA"),
-  HASIB.algo               = "vanHees2015",
+  HASPT.algo               = "NotWorn",
+  HASIB.algo               = "NotWorn",
   do.imp                   = FALSE,
   nonwear_range_threshold  = 100, 
   HASPT.ignore.invalid     = NA,

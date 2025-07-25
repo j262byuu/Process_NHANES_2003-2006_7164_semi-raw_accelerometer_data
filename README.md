@@ -134,15 +134,13 @@ As a result:
 3. In ~10% of participants who did not follow protocol, it may be possible to estimate RA and other circadian rhythm parameters.
 
 I wrote code to match the NCI algorithm as closely as possible. Key features:
-1. Calibration and imputation are turned off.
-2. Windowsizes are set to c(60, 900, 3600). This is my custom setting because I truly believe the GGIR default. Here's an explanation:
+1. Calibration and imputation are turned off; these steps are not feasible with single-axis count-based data.
+2. Windowsizes are set to c(60, 3600, 3600). This is matches the NCI algorithm. Here's an explanation:
 ```
 window1 = 60: Matches the native 60-second epoch of the ActiGraph 7164
-window2 = 900: 15-minute windows for non-wear detection (I think this is reasonable, although it DOES NOT match the original NCI algorithm)
+window2 = 3600: 1-hour windows for non-wear detection
 window3 = 3600: 1-hour assessment windows with overlapping detection
 ```
-According to the NCI algorithm ([create.pam_perday.sas](https://epi.grants.cancer.gov/nhanes-pam/create.pam_perday.sas), line 183), window2 should be set to 3600 (i.e., 60 minutes). You can try this setting if you want to follow the original method.
-
 4. Uses GGIR’s non-wear detection (NotWorn algorithm) to identify sleep. I tried L5+/-12 but it gave me some pretty wild results.
 5. A 10-hour minimum wear time defines a valid day (same as NCI).
 6. Uses a 100-count non-wear threshold (though I’m not sure it works well).
@@ -160,7 +158,7 @@ GGIR(
   do.cal                   = FALSE,
   dataFormat               = "actigraph_csv",
   extEpochData_timeformat  = "%m-%d-%Y %H:%M:%S",
-  windowsizes              = c(60, 900, 3600),
+  windowsizes              = c(60, 3600, 3600),
   do.neishabouricounts     = FALSE,
   acc.metric               = "NeishabouriCount_vm",
   studyname                = "NHANES03040506",
@@ -176,6 +174,6 @@ GGIR(
   includedaycrit           = 10, # NCI consider >=10 hr per day is valid
   includenightcrit         = 10)
 ```
-I compared MVPA (total duration, no need to consider bouts at the 60-second epoch level, as the 60s resolution already smooths out random acceleration) and sedentary behavior time against the NCI SAS algorithm. The correlations were 97% and 90%, respectively. I would consider it safe to use.
+I compared MVPA (total duration, no need to consider bouts at the 60-second epoch level, as the 60s resolution already smooths out random acceleration) and sedentary behavior time against the NCI SAS algorithm. Among participants aged ≥18, the correlations were 97.12% for MVPA and 85.43% for sedentary time (raw correlation without survey weights). I would consider this safe to use.
 
 # If you have any questions or would like access to the processed data (it’s way too large to upload to GitHub), feel free to contact me on LinkedIn!

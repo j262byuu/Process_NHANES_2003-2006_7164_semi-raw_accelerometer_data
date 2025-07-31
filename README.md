@@ -144,9 +144,10 @@ window3 = 3600: 1-hour assessment windows with overlapping detection
 4. Uses GGIR’s non-wear detection (NotWorn algorithm) to identify sleep. I tried L5+/-12 but it gave me some pretty wild results.
 5. A 10-hour minimum wear time defines a valid day (same as NCI).
 6. Uses a 100-count non-wear threshold (though I’m not sure it works well).
-7. Applies NCI-defined thresholds for sedentary, light, moderate, and vigorous PA.
+7. Applies NCI-defined thresholds for sedentary, light and MVPA.
 8. Uses already-derived ActiGraph 7164 counts (VM) as the acc metric.
 9. You have to use NotWorn for both HASPT.algo and HASIB.algo.
+10. Any columns containing NeishabouriCount_x|y|z are not usable because they contain dummy values.
 
 My GGIR parameter:
 
